@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "System Usage Tracker",
+  "version": "1.0",
+  "description": "Tracks system login and lock events",
+  "permissions": [
+    "storage",
+    "idle",
+    "alarms",
+    "tabs"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  }
+}

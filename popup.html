@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>System Usage Tracker</title>
+  <style>
+    body {
+      width: 400px;
+      padding: 10px;
+      font-family: Arial, sans-serif;
+    }
+    button {
+      margin: 5px;
+    }
+    #records {
+      margin-top: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+  </style>
+</head>
+<body>
+  <h1>System Usage Tracker</h1>
+  <button id="startBtn">Start Tracking</button>
+  <button id="clearBtn">Clear Records</button>
+  <button id="totalTimeBtn">Total Time</button>
+  <button id="totalAudioTimeBtn">Total Audio Time</button>
+  <button id="audioTrackingBtn">Start Audio Tracking</button>
+  <button id="exportBtn">Export to CSV</button>
+  <div id="totalTime"></div>
+  <div id="totalAudioTime"></div>
+  <div id="records"></div>
+  <script src="popup.js"></script>
+</body>
+</html>

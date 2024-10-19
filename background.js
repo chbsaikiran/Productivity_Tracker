@@ -5,6 +5,7 @@ let lastActiveTime = Date.now();
 let audioActiveStartTime = null;
 let totalAudioDuration = 0;
 let lastAudioDuration = 0;
+let isFirstRecordAfterWake = true;
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.storage.local.set({ records: [], isTracking: false, isAudioTracking: false, trackingFlag: false, totalAudioDuration: 0 });
@@ -60,13 +61,13 @@ function checkSystemState() {
 
         if (state === 'locked' && currentRecord) {
           finishCurrentRecord();
+          displayRecord(currentRecord); // Add this line to display the record immediately
         } else if (state === 'active') {
           if (!currentRecord) {
             startNewRecord();
           }
           lastActiveTime = now;
         }
-        // We remove the idle check here, as we only want to create records on actual lock events
       });
 
       // Check audio activity
@@ -181,3 +182,46 @@ chrome.runtime.onStartup.addListener(() => {
 });
 
 checkSystemState();
+
+// Add this new function to display the record
+function displayRecord(record) {
+  chrome.runtime.sendMessage({ action: 'displayRecord', record: record });
+}
+
+chrome.idle.onStateChanged.addListener((state) => {
+  if (state === 'active') {
+    chrome.storage.local.get(['trackingFlag', 'isAudioTracking'], (data) => {
+      if (data.trackingFlag) {
+        const now = Date.now();
+        if (isFirstRecordAfterWake) {
+          // This is the first activation after sleep/lock
+          stopTracking();
+          startTracking();
+          startNewRecord();
+          isFirstRecordAfterWake = false;
+          
+          // Reset audio duration values
+          totalAudioDuration = 0;
+          lastAudioDuration = 0;
+          chrome.storage.local.set({ totalAudioDuration: 0 });
+        } else if (!currentRecord) {
+          // If there's no current record, start a new one
+          startNewRecord();
+        }
+        lastActiveTime = now;
+
+        // Check if audio tracking should be active and restart it if necessary
+        if (data.isAudioTracking) {
+          if (!isAudioTracking) {
+            startAudioTracking();
+          }
+        }
+      }
+    });
+  } else if (state === 'locked' && currentRecord) {
+    // System is locked
+    finishCurrentRecord();
+    displayRecord(currentRecord);
+    isFirstRecordAfterWake = true;
+  }
+});

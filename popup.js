@@ -30,36 +30,54 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function displayRecords(records) {
-    recordsDiv.innerHTML = '<h2>Usage Records:</h2>';
-    if (records.length === 0) {
-      recordsDiv.innerHTML += '<p>No records available.</p>';
-    } else {
-      const table = document.createElement('table');
-      table.innerHTML = `
-        <tr>
-          <th>Record</th>
-          <th>Start Time</th>
-          <th>Stop Time</th>
-          <th>Duration</th>
-          <th>Audio Active Duration</th>
-        </tr>
-      `;
-      records.forEach((record, index) => {
-        const startTime = new Date(record.startTime);
-        const stopTime = record.stopTime ? new Date(record.stopTime) : null;
-        const duration = stopTime ? (stopTime - startTime) / 1000 : 'Ongoing';
-        
-        const row = table.insertRow();
-        row.innerHTML = `
-          <td>${index + 1}</td>
-          <td>${startTime.toLocaleString()}</td>
-          <td>${stopTime ? stopTime.toLocaleString() : 'Ongoing'}</td>
-          <td>${typeof duration === 'number' ? formatDuration(duration) : duration}</td>
-          <td>${formatDuration(record.audioActiveDuration || 0)}</td>
-        `;
-      });
-      recordsDiv.appendChild(table);
+    const recordsList = document.getElementById('recordsList');
+    if (!recordsList) {
+      console.error('recordsList element not found');
+      return;
     }
+    recordsList.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Record</th>
+            <th>Start Time</th>
+            <th>Stop Time</th>
+            <th>Duration</th>
+            <th>Audio Active Time</th>
+          </tr>
+        </thead>
+        <tbody>
+        </tbody>
+      </table>
+    `;
+    const tbody = recordsList.querySelector('tbody');
+    
+    let lastRecord = null;
+    records.forEach((record, index) => {
+      const startTime = new Date(record.startTime);
+      const stopTime = record.stopTime ? new Date(record.stopTime) : null;
+      const duration = stopTime ? (stopTime - startTime) / 1000 : 'Ongoing';
+      
+      // Check if this record is identical to the last one
+      if (lastRecord &&
+          lastRecord.stopTime === record.stopTime &&
+          lastRecord.duration === duration &&
+          lastRecord.audioActiveDuration === record.audioActiveDuration) {
+        return; // Skip this record
+      }
+
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${index + 1}</td>
+        <td>${startTime.toLocaleString()}</td>
+        <td>${stopTime ? stopTime.toLocaleString() : 'Ongoing'}</td>
+        <td>${typeof duration === 'number' ? formatDuration(duration) : duration}</td>
+        <td>${formatDuration(record.audioActiveDuration)}</td>
+      `;
+      tbody.appendChild(row);
+
+      lastRecord = { ...record, duration }; // Update lastRecord for the next iteration
+    });
   }
 
   function formatDuration(seconds) {

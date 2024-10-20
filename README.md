@@ -7,3 +7,5 @@ Total Daily Summary: Easily check your total screen time and non-productive audi
 Productivity Boost: Use the "Stop Audio Tracking" feature for work-related or educational content, resuming when needed.
 
 Stay Focused: Manage your time better and make conscious decisions about how you spend your day.
+
+Here is the Demo Video: https://www.youtube.com/watch?v=vslWphRLyso

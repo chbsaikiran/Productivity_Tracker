@@ -206,7 +206,7 @@ chrome.idle.onStateChanged.addListener((state) => {
           chrome.storage.local.set({ totalAudioDuration: 0 });
         } else if (!currentRecord) {
           // If there's no current record, start a new one
-          startNewRecord();
+          //startNewRecord();
         }
         lastActiveTime = now;
 

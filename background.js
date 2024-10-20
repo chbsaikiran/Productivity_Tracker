@@ -185,7 +185,29 @@ checkSystemState();
 
 // Add this new function to display the record
 function displayRecord(record) {
-  chrome.runtime.sendMessage({ action: 'displayRecord', record: record });
+  // Calculate duration
+  const startTime = new Date(record.startTime);
+  const stopTime = new Date(record.stopTime);
+  const duration = (stopTime - startTime) / 1000; // duration in seconds
+
+  // Only display and save the record if it has a non-zero duration
+  if (duration > 0) {
+    chrome.runtime.sendMessage({ 
+      action: 'displayRecord', 
+      record: {
+        ...record,
+        duration: formatDuration(duration)
+      }
+    });
+    saveRecord(record);
+  }
+}
+
+function formatDuration(seconds) {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  return `${hours}h ${minutes}m ${remainingSeconds}s`;
 }
 
 chrome.idle.onStateChanged.addListener((state) => {
@@ -193,21 +215,16 @@ chrome.idle.onStateChanged.addListener((state) => {
     chrome.storage.local.get(['trackingFlag', 'isAudioTracking'], (data) => {
       if (data.trackingFlag) {
         const now = Date.now();
-        if (isFirstRecordAfterWake) {
-          // This is the first activation after sleep/lock
-          stopTracking();
-          startTracking();
-          startNewRecord();
-          isFirstRecordAfterWake = false;
-          
-          // Reset audio duration values
-          totalAudioDuration = 0;
-          lastAudioDuration = 0;
-          chrome.storage.local.set({ totalAudioDuration: 0 });
-        } else if (!currentRecord) {
-          // If there's no current record, start a new one
-          //startNewRecord();
-        }
+        // Always start a new record when becoming active
+        stopTracking();
+        startTracking();
+        startNewRecord();
+        
+        // Reset audio duration values
+        totalAudioDuration = 0;
+        lastAudioDuration = 0;
+        chrome.storage.local.set({ totalAudioDuration: 0 });
+        
         lastActiveTime = now;
 
         // Check if audio tracking should be active and restart it if necessary
@@ -222,6 +239,6 @@ chrome.idle.onStateChanged.addListener((state) => {
     // System is locked
     finishCurrentRecord();
     displayRecord(currentRecord);
-    isFirstRecordAfterWake = true;
+    currentRecord = null; // Reset current record
   }
 });

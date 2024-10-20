@@ -176,4 +176,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   updateUI();
   setInterval(updateUI, 1000); // Update UI every second
+
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === 'displayRecord') {
+      const record = request.record;
+      const recordsList = document.getElementById('recordsList');
+      if (recordsList) {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${new Date(record.startTime).toLocaleString()}</td>
+          <td>${new Date(record.stopTime).toLocaleString()}</td>
+          <td>${record.duration}</td>
+          <td>${formatDuration(record.audioActiveDuration)}</td>
+        `;
+        recordsList.querySelector('tbody').appendChild(row);
+      }
+    }
+  });
 });

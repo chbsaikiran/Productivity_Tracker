@@ -6,6 +6,7 @@ let audioActiveStartTime = null;
 let totalAudioDuration = 0;
 let lastAudioDuration = 0;
 let isFirstRecordAfterWake = true;
+let isHandlingLock = false;
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.storage.local.set({ records: [], isTracking: false, isAudioTracking: false, trackingFlag: false, totalAudioDuration: 0 });
@@ -29,8 +30,7 @@ function stopTracking() {
 function startAudioTracking() {
   isAudioTracking = true;
   chrome.storage.local.set({ isAudioTracking: true });
-  audioActiveStartTime = Date.now();
-  totalAudioDuration = lastAudioDuration;
+  resumeAudioTracking();
 }
 
 function stopAudioTracking() {
@@ -211,42 +211,100 @@ function formatDuration(seconds) {
 }
 
 chrome.idle.onStateChanged.addListener((state) => {
+  console.log('State changed to:', state); // Debug log
+
   if (state === 'active') {
+    isHandlingLock = false; // Reset the lock handling flag
     chrome.storage.local.get(['trackingFlag', 'isAudioTracking'], (data) => {
       if (data.trackingFlag) {
         const now = Date.now();
         if (isFirstRecordAfterWake) {
-          // This is the first activation after sleep
-          stopTracking();
-          startTracking();
-          startNewRecord();
-          
-          // Reset audio duration values
-          totalAudioDuration = 0;
-          lastAudioDuration = 0;
-          chrome.storage.local.set({ totalAudioDuration: 0 });
+          // This is the first activation after sleep/lock
+          if (!currentRecord) {
+            startNewRecord();
+          }
           
           isFirstRecordAfterWake = false;
           lastActiveTime = now;
-        }
 
-        // Check if audio tracking should be active and restart it if necessary
-        if (data.isAudioTracking) {
-          if (!isAudioTracking) {
+          // Restart audio tracking if it was active before
+          if (data.isAudioTracking) {
             startAudioTracking();
           }
         }
+        lastActiveTime = now;
       }
     });
-  } else if (state === 'locked') {
-    // System is locked (potentially going to sleep)
+  } else if (state === 'locked' && !isHandlingLock) {
+    isHandlingLock = true; // Set the flag to indicate we're handling a lock event
+    console.log('System locked. Current record:', currentRecord); // Debug log
+
+    // System is locked
     if (currentRecord) {
-      finishCurrentRecord();
+      const now = new Date();
+      currentRecord.stopTime = now.toISOString();
+      console.log('Setting stop time:', currentRecord.stopTime); // Debug log
+      updateAudioDuration();
+      currentRecord.audioActiveDuration = totalAudioDuration;
+      saveRecord(currentRecord);
       displayRecord(currentRecord);
+      console.log('Record saved and displayed:', currentRecord); // Debug log
+      
+      // Reset the current record after handling the lock event
+      currentRecord = null;
+    } else {
+      console.log('No current record to finish'); // Debug log
     }
     
-    // Set isFirstRecordAfterWake to true when the system is locked
     isFirstRecordAfterWake = true;
-
+    
+    // Pause audio tracking when locked, but don't stop it
+    if (isAudioTracking) {
+      pauseAudioTracking();
+      console.log('Audio tracking paused due to lock'); // Debug log
+    }
+    
+    // Reset audio duration values for the new session
+    totalAudioDuration = 0;
+    lastAudioDuration = 0;
+    audioActiveStartTime = null;
+    chrome.storage.local.set({ totalAudioDuration: 0 });
   }
+});
+
+function pauseAudioTracking() {
+  if (audioActiveStartTime) {
+    totalAudioDuration += (Date.now() - audioActiveStartTime) / 1000;
+    audioActiveStartTime = null;
+  }
+  chrome.storage.local.set({ totalAudioDuration: totalAudioDuration });
+  // Don't change isAudioTracking here
+}
+
+function resumeAudioTracking() {
+  if (isAudioTracking) {
+    audioActiveStartTime = Date.now();
+  }
+}
+
+chrome.system.display.onDisplayChanged.addListener(() => {
+  chrome.system.display.getInfo((displays) => {
+    const allDisplaysOff = displays.every(display => !display.isEnabled);
+    if (allDisplaysOff) {
+      console.log('All displays turned off, likely locked');
+      // Handle this as if the system was locked
+      if (currentRecord) {
+        const now = new Date();
+        currentRecord.stopTime = now.toISOString();
+        updateAudioDuration();
+        currentRecord.audioActiveDuration = totalAudioDuration;
+        saveRecord(currentRecord);
+        displayRecord(currentRecord);
+      }
+      isFirstRecordAfterWake = true;
+      if (isAudioTracking) {
+        stopAudioTracking();
+      }
+    }
+  });
 });

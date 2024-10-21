@@ -52,19 +52,10 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
     const tbody = recordsList.querySelector('tbody');
     
-    let lastRecord = null;
     records.forEach((record, index) => {
       const startTime = new Date(record.startTime);
       const stopTime = record.stopTime ? new Date(record.stopTime) : null;
       const duration = stopTime ? (stopTime - startTime) / 1000 : 'Ongoing';
-      
-      // Check if this record is identical to the last one
-      if (lastRecord &&
-          lastRecord.stopTime === record.stopTime &&
-          lastRecord.duration === duration &&
-          lastRecord.audioActiveDuration === record.audioActiveDuration) {
-        return; // Skip this record
-      }
 
       const row = document.createElement('tr');
       row.innerHTML = `
@@ -75,8 +66,6 @@ document.addEventListener('DOMContentLoaded', () => {
         <td>${formatDuration(record.audioActiveDuration)}</td>
       `;
       tbody.appendChild(row);
-
-      lastRecord = { ...record, duration }; // Update lastRecord for the next iteration
     });
   }
 

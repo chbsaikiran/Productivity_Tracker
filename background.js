@@ -108,7 +108,7 @@ function finishCurrentRecord() {
   updateAudioDuration();
   currentRecord.audioActiveDuration = totalAudioDuration;
   saveRecord(currentRecord);
-  currentRecord = null;
+  //currentRecord = null;
   audioActiveStartTime = null;
 }
 
@@ -239,6 +239,6 @@ chrome.idle.onStateChanged.addListener((state) => {
     // System is locked
     finishCurrentRecord();
     displayRecord(currentRecord);
-    currentRecord = null; // Reset current record
+    //currentRecord = null; // Reset current record
   }
 });
